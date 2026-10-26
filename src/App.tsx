@@ -1,7 +1,7 @@
 import { BookOpen, ChevronLeft, ChevronRight, Compass, Github, Keyboard, Moon, Search, Sun, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AtlasContext, useAtlas, useEntry } from "./atlas/context";
-import { buildEikenAtlas, loadEikenData, loadOpenAtlas, loadPrivateAtlas, type EikenData } from "./atlas/data";
+import { buildEikenAtlas, loadEikenData, loadOpenAtlas, loadPrivateAtlas, type EikenBook, type EikenData } from "./atlas/data";
 import type { Atlas } from "./atlas/types";
 import { REPO_URL } from "./config";
 import { closeWord, currentLocation, go, openWord, useLocation, type Route } from "./lib/router";
@@ -9,7 +9,7 @@ import { AtlasPage } from "./pages/Atlas";
 import { About } from "./pages/About";
 import { Learn } from "./pages/Learn";
 import { Me } from "./pages/Me";
-import { Onboarding } from "./pages/Onboarding";
+import { NamePrompt, Onboarding } from "./pages/Onboarding";
 import { Practice } from "./pages/Practice";
 import { Today } from "./pages/Today";
 import { cue } from "./lib/sound";
@@ -45,17 +45,24 @@ export default function App() {
   const [atlas, setAtlas] = useState<Atlas | null>(null);
   const [open, setOpen] = useState<Atlas | null>(null);
   const [priv, setPriv] = useState<Atlas | null>(null);
-  const [eikenData, setEikenData] = useState<EikenData | null>(null);
+  const [books, setBooks] = useState<Partial<Record<EikenBook, EikenData>>>({});
   const [error, setError] = useState<string | null>(null);
   const dataset = useStore((s) => s.settings.dataset);
   const gloss = useStore((s) => s.settings.gloss);
   useTheme();
 
   useEffect(() => {
-    if (dataset === "eiken" && !eikenData) loadEikenData().then(setEikenData, (e: Error) => setError(e.message));
-  }, [dataset, eikenData]);
+    if ((dataset === "eiken" || dataset === "eiken45") && !books[dataset])
+      loadEikenData(dataset).then(
+        (d) => setBooks((b) => ({ ...b, [dataset]: d })),
+        (e: Error) => setError(e.message),
+      );
+  }, [dataset, books]);
 
-  const eiken = useMemo(() => (open && eikenData ? buildEikenAtlas(open, eikenData, gloss) : null), [open, eikenData, gloss]);
+  const eiken = useMemo(() => {
+    const d = dataset === "eiken" || dataset === "eiken45" ? books[dataset] : undefined;
+    return open && d ? buildEikenAtlas(open, d, gloss) : null;
+  }, [open, books, dataset, gloss]);
 
   useEffect(() => {
     loadOpenAtlas().then(
@@ -68,7 +75,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const next = dataset === "private" && priv ? priv : dataset === "eiken" ? eiken : open;
+    const next = dataset === "private" && priv ? priv : dataset === "eiken" || dataset === "eiken45" ? eiken : open;
     if (next && next !== atlas) {
       if (next.id !== atlas?.id) store.useDataset(next.id);
       setAtlas(next);
@@ -102,6 +109,8 @@ export default function App() {
 function Shell({ privateAvailable }: { privateAvailable: boolean }) {
   const { route, word } = useLocation();
   const onboarded = useStore((s) => s.settings.onboarded);
+  const name = useStore((s) => s.settings.name);
+  const navLabel = (page: Route["page"], label: string) => (page === "me" && name ? `${name}'s` : label);
   const theme = useStore((s) => s.settings.theme);
   const [palette, setPalette] = useState(false);
   const [splash, setSplash] = useState(shouldShowSplash);
@@ -139,7 +148,7 @@ function Shell({ privateAvailable }: { privateAvailable: boolean }) {
           <nav className="topnav" aria-label="主导航">
             {NAV.map(({ page, label }) => (
               <a key={page} href={page === "today" ? "#/" : `#/${page}`} className={route.page === page ? "is-on" : ""} aria-current={route.page === page ? "page" : undefined}>
-                {label}
+                {navLabel(page, label)}
               </a>
             ))}
           </nav>
@@ -187,7 +196,7 @@ function Shell({ privateAvailable }: { privateAvailable: boolean }) {
           {NAV.map(({ page, label, icon: Icon }) => (
             <a key={page} href={page === "today" ? "#/" : `#/${page}`} className={route.page === page ? "is-on" : ""} aria-current={route.page === page ? "page" : undefined}>
               <Icon size={22} strokeWidth={route.page === page ? 2.1 : 1.7} />
-              <span>{label}</span>
+              <span>{navLabel(page, label)}</span>
             </a>
           ))}
         </nav>
@@ -196,6 +205,7 @@ function Shell({ privateAvailable }: { privateAvailable: boolean }) {
       <WordSheet id={word} />
       <Palette open={palette} onClose={() => setPalette(false)} />
       {!onboarded && route.page !== "about" && !splash && <Onboarding />}
+      {onboarded && !name && route.page !== "about" && !splash && <NamePrompt />}
       {splash && <Splash onDone={() => setSplash(false)} />}
       <Toasts />
       <AmbienceController />

@@ -1,5 +1,8 @@
 export type Accent = "uk" | "us";
 
+/** Furigana: plain text, or [kanji, reading]. */
+export type Seg = string | [string, string];
+
 /** Compact row from atlas/index.json: [id, word, zh, ipa, cefr, topic, media]. */
 export type IndexRow = [string, string, string, string, number, number, number];
 
@@ -9,6 +12,8 @@ export interface Sense {
   en: string;
   /** Kana reading of a Japanese gloss, when the gloss is Japanese. */
   yomi?: string;
+  /** Japanese gloss with furigana over every kanji. */
+  ruby?: Seg[];
 }
 
 export interface Example {
@@ -48,6 +53,8 @@ export interface WordRef {
   cefr: number;
   topic: number;
   media: number;
+  /** Furigana for the meaning label, when it is Japanese. */
+  rb?: Seg[];
   /** Position in the learning path. */
   order: number;
 }

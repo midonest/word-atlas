@@ -11,6 +11,7 @@ import { Galaxy } from "../galaxy/Galaxy";
 import { Highlight, Pronounce } from "../ui/EntryView";
 import { Illustration } from "../ui/Illustration";
 import { Ring } from "../ui/Ring";
+import { Gloss } from "../ui/Gloss";
 
 const BRAND = `${import.meta.env.BASE_URL}brand`;
 
@@ -249,7 +250,9 @@ function WordOfDay() {
             <Pronounce entry={entry} refw={pick} />
           </div>
         )}
-        <p className="wotd-zh">{pick.zh}</p>
+        <p className="wotd-zh">
+          <Gloss text={pick.zh} ruby={pick.rb} />
+        </p>
         {entry?.ex[0] && (
           <p className="wotd-ex" lang="en">
             <Highlight text={entry.ex[0].en} word={entry.w} />

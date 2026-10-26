@@ -56,7 +56,9 @@ export interface Settings {
   spell: boolean;
   startLevel: number;
   onboarded: boolean;
-  dataset: "open" | "private" | "eiken";
+  dataset: "open" | "private" | "eiken" | "eiken45";
+  /** Learner's English name, shown in the navigation as “Name's”. */
+  name: string;
   /** Meaning language for the 英検 word book. */
   gloss: "ja" | "zh" | "both";
   ambience: "off" | "stars" | "rain" | "sea" | "forest" | "fire" | "voyage" | "cafe";
@@ -76,6 +78,7 @@ export const defaultSettings: Settings = {
   onboarded: false,
   dataset: "open",
   gloss: "ja",
+  name: "",
   ambience: "stars",
   ambienceVolume: 0.45,
   splash: true,
@@ -160,6 +163,9 @@ export function sanitizeProgress(v: unknown, datasetId: string): Progress {
   return out;
 }
 
+/** An English first name: letters, with spaces, hyphens, dots or apostrophes inside. */
+export const isEnglishName = (n: string) => /^[A-Za-z](?:[A-Za-z .'-]{0,10}[A-Za-z.])?$/.test(n);
+
 export function sanitizeSettings(v: unknown): Settings {
   const s = { ...defaultSettings };
   if (!isObj(v)) return s;
@@ -172,7 +178,8 @@ export function sanitizeSettings(v: unknown): Settings {
   if (typeof v.spell === "boolean") s.spell = v.spell;
   if (num(v.startLevel, 0, 5)) s.startLevel = Math.round(v.startLevel as number);
   if (typeof v.onboarded === "boolean") s.onboarded = v.onboarded;
-  if (v.dataset === "open" || v.dataset === "private" || v.dataset === "eiken") s.dataset = v.dataset;
+  if (v.dataset === "open" || v.dataset === "private" || v.dataset === "eiken" || v.dataset === "eiken45") s.dataset = v.dataset;
+  if (typeof v.name === "string" && isEnglishName(v.name)) s.name = v.name;
   if (v.gloss === "ja" || v.gloss === "zh" || v.gloss === "both") s.gloss = v.gloss;
   if (["off", "stars", "rain", "sea", "forest", "fire", "voyage", "cafe"].includes(v.ambience as string)) s.ambience = v.ambience as Settings["ambience"];
   if (num(v.ambienceVolume, 0, 1)) s.ambienceVolume = v.ambienceVolume as number;

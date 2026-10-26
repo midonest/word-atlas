@@ -1,8 +1,8 @@
 import { Download, RotateCcw, Upload } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAtlas } from "../atlas/context";
 import { isMastered } from "../store/srs";
-import { dayKey, exportBackup, importBackup, resetProgress, store, useStore, type Settings } from "../store/store";
+import { dayKey, exportBackup, importBackup, isEnglishName, resetProgress, store, useStore, type Settings } from "../store/store";
 import { toast } from "../ui/Toast";
 import { streakOf } from "./Today";
 
@@ -51,7 +51,7 @@ export function Me({ privateAvailable }: { privateAvailable: boolean }) {
   return (
     <div className="page me">
       <header className="page-head">
-        <p className="eyebrow">我的</p>
+        <p className="eyebrow">{settings.name ? `${settings.name}'s` : "我的"}</p>
         <h1 className="display">你的星空</h1>
       </header>
 
@@ -165,10 +165,14 @@ export function Me({ privateAvailable }: { privateAvailable: boolean }) {
           <Toggle label="界面音效" on={settings.sfx} set={(v) => set({ sfx: v })} />
           <Toggle label="开屏动画（每天一次）" on={settings.splash} set={(v) => set({ splash: v })} />
           <Toggle label="复习时加入拼写题" on={settings.spell} set={(v) => set({ spell: v })} />
-          <Field label="词库" hint="两个词库的学习进度各自独立。切换后从最低难度开始，可在上方调整。">
+          <Field label="英文名字" hint="显示在导航栏上。">
+            <NameEditor />
+          </Field>
+          <Field label="词库" hint="各个词库的学习进度各自独立。切换后从最低难度开始，可在上方调整。">
             <div className="segmented">
               {(
                 [
+                  ["eiken45", "英検5・4級"],
                   ["eiken", "英検準2級"],
                   ["open", "雅思"],
                   ...(privateAvailable ? ([["private", "私人 8000"]] as const) : []),
@@ -180,7 +184,7 @@ export function Me({ privateAvailable }: { privateAvailable: boolean }) {
               ))}
             </div>
           </Field>
-          {settings.dataset === "eiken" && (
+          {(settings.dataset === "eiken" || settings.dataset === "eiken45") && (
             <Field label="释义语言" hint="例句的中文翻译只在「中文」和「中日对照」中显示。">
               <div className="segmented">
                 {(
@@ -269,6 +273,25 @@ function Heatmap({ days }: { days: Record<string, { r: number }> }) {
       {cells.map((c) => (
         <span key={c.k} className={`h${c.future ? "x" : lvl(c.v)}`} title={`${c.k} · ${c.v} 题`} />
       ))}
+    </div>
+  );
+}
+
+function NameEditor() {
+  const saved = useStore((s) => s.settings.name);
+  const [name, setName] = useState(saved);
+  const trimmed = name.trim();
+  const ok = isEnglishName(trimmed);
+  const save = () => {
+    if (ok && trimmed !== saved) {
+      store.settings({ name: trimmed });
+      toast(`Hi, ${trimmed}!`);
+    }
+  };
+  return (
+    <div className="name-row">
+      <input className="name-input" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} maxLength={12} placeholder="e.g. Mimi" spellCheck={false} lang="en" aria-invalid={!!name && !ok} />
+      {name && !ok && <small className="warn-text">请只用英文字母</small>}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { clean, correctCharacterCount, same, typingDelta, typingMetrics } from "
 import { store, useStore } from "../store/store";
 import { AmbiencePicker } from "../ui/Ambience";
 import { Illustration } from "../ui/Illustration";
+import { Gloss } from "../ui/Gloss";
 
 type Mode = "word" | "sentence" | "dictation";
 type Source = "recent" | "mistakes" | "saved" | "path";
@@ -205,7 +206,7 @@ function TypingRound({ mode, entries, onExit, onAgain }: { mode: Mode; entries: 
           <div className="typing-cue">
             <Illustration src={atlas.img(e)} word={e.w} topic={0} eager />
             <p>
-              <span className="pos">{e.senses[0].pos}</span> {e.senses[0].zh}
+              <span className="pos">{e.senses[0].pos}</span> <Gloss text={e.senses[0].zh} ruby={e.senses[0].ruby} />
             </p>
           </div>
         )}

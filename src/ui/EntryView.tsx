@@ -8,6 +8,7 @@ import { Illustration } from "./Illustration";
 import { Speak } from "./Speak";
 import { shareWord } from "./share";
 import { openWord } from "../lib/router";
+import { Gloss } from "./Gloss";
 
 export function Highlight({ text, word }: { text: string; word: string }) {
   const parts = splitHighlight(text, word);
@@ -106,7 +107,7 @@ export function EntryView({ entry, mode = "detail", eager = true }: { entry: Ent
             <li key={i}>
               <span className="pos">{s.pos}</span>
               <span className="zh">
-                {s.zh}
+                <Gloss text={s.zh} ruby={s.ruby} />
                 {s.yomi && (
                   <small className="yomi" lang="ja">
                     {s.yomi}

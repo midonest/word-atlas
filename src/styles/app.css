@@ -403,7 +403,9 @@ code {
   letter-spacing: 0.02em;
 }
 .lv-A1,
-.lv-A2 {
+.lv-A2,
+.lv-5級,
+.lv-4級 {
   --lv: var(--sage);
   --lv-soft: var(--sage-soft);
 }
@@ -4128,4 +4130,51 @@ a:hover .mark-needle,
 }
 .streak-panel .mini-stats div:first-child dd {
   color: var(--ochre);
+}
+
+/* Furigana on Japanese meanings (英検5・4級) */
+.gloss {
+  line-height: 2.1;
+}
+.gloss rt {
+  font-size: 0.52em;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: 0.8;
+}
+.tile-zh:has(ruby),
+.row-zh:has(ruby) {
+  line-height: 2.2;
+}
+
+/* English name */
+.name-input {
+  width: 100%;
+  max-width: 320px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 18px;
+  font-family: var(--serif);
+}
+.name-input:focus {
+  outline: 2px solid var(--sage);
+  outline-offset: 1px;
+}
+.name-input[aria-invalid="true"] {
+  border-color: var(--terra);
+}
+.onboard fieldset small {
+  display: block;
+  margin-top: 6px;
+}
+.name-row {
+  display: grid;
+  gap: 6px;
+}
+.onboard-card-small {
+  max-width: 460px;
 }

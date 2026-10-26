@@ -1,4 +1,4 @@
-import type { Atlas, Entry, IndexRow, WordRef } from "./types";
+import type { Atlas, Entry, IndexRow, Seg, WordRef } from "./types";
 import { MEDIA } from "./types";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -169,9 +169,10 @@ export async function loadPrivateAtlas(open: Atlas | null): Promise<Atlas | null
   };
 }
 
-/* ---------- 英検準2級 word book (a filtered, Japanese-glossed view of the open atlas) ---------- */
+/* ---------- 英検 word books (filtered, Japanese-glossed views of the open atlas) ---------- */
 
 export type Gloss = "ja" | "zh" | "both";
+export type EikenBook = "eiken" | "eiken45";
 
 export interface EikenData {
   id: string;
@@ -179,58 +180,69 @@ export interface EikenData {
   cefr: string[];
   /** [id, American spelling, level index] in learning order. */
   words: [string, string, number][];
-  /** Japanese gloss and kana reading per sense, aligned with the entry's senses. */
-  ja: Record<string, [string, string][]>;
+  /** Japanese gloss, kana reading and (optionally) furigana segments per kept sense. */
+  ja: Record<string, [string, string, Seg[]?][]>;
   /** Example sentences rewritten in American spelling, where they differ. */
   ex: Record<string, string>;
   col: Record<string, string[]>;
+  /** Indices of the senses to keep, when not all of them. */
+  keep?: Record<string, number[]>;
+  /** [pos, zh] of the first kept sense, when it is not the entry's first sense. */
+  lab?: Record<string, [string, string]>;
+  /** Words whose picture and example belong to a sense that was dropped. */
+  noimg?: string[];
+  /** Words not in the open atlas: text-only entries, read aloud by the device voice. */
+  extra?: Record<string, { pos: string; zh: string; en: string; ipa: string; ex: [string, string]; t: number }>;
 }
 
-export async function loadEikenData(): Promise<EikenData> {
-  const res = await fetch(url("eiken-pre2.json"));
+const EIKEN_FILES: Record<EikenBook, string> = { eiken: "eiken-pre2.json", eiken45: "eiken-45.json" };
+
+export async function loadEikenData(book: EikenBook): Promise<EikenData> {
+  const res = await fetch(url(EIKEN_FILES[book]));
   if (!res.ok) throw new Error(`英検词库加载失败（${res.status}）`);
   return (await res.json()) as EikenData;
 }
 
 export function buildEikenAtlas(open: Atlas, data: EikenData, gloss: Gloss): Atlas {
   const spelling = new Map(data.words.map(([id, us]) => [id, us]));
-  const label = (id: string, zh: string) => {
-    const ja = data.ja[id]?.[0]?.[0];
-    if (!ja || gloss === "zh") return zh;
-    const pos = (zh.match(/^[a-z]+\.(?:\s|$)/) || [""])[0];
-    return `${pos}${ja}`.trim();
+  const noimg = new Set(data.noimg ?? []);
+  const extra = data.extra ?? {};
+  const label = (id: string, zh: string): [string, Seg[] | undefined] => {
+    const lab = data.lab?.[id];
+    const base = lab ? `${lab[0]} ${lab[1]}` : zh;
+    const ja = data.ja[id]?.[0];
+    if (!ja || gloss === "zh") return [base, undefined];
+    const pos = (base.match(/^[a-z]+\.(?:\s|$)/) || [""])[0];
+    return [`${pos}${ja[0]}`.trim(), ja[2] ? [pos, ...ja[2]] : undefined];
   };
   const words: WordRef[] = [];
   data.words.forEach(([id, us, level]) => {
-    const ref = open.byId.get(id);
-    if (ref)
-      words.push({
-        ...ref,
-        word: us,
-        zh: label(id, ref.zh),
-        cefr: level,
-        order: words.length,
-      });
+    const x = extra[id];
+    const ref: WordRef | undefined = x ? { id, word: us, zh: `${x.pos} ${x.zh}`, ipa: x.ipa, cefr: 0, topic: x.t, media: 0, order: 0 } : open.byId.get(id);
+    if (!ref) return;
+    const [zh, rb] = label(id, ref.zh);
+    const media = noimg.has(id) ? ref.media & ~(MEDIA.img | MEDIA.ex | MEDIA.ex2) : ref.media;
+    words.push({ ...ref, word: us, zh, rb, cefr: level, media, order: words.length });
   });
   const byId = new Map(words.map((w) => [w.id, w]));
   const cache = new Map<string, Entry>();
+  const rawExtra = (id: string): Entry => {
+    const x = extra[id];
+    return { id, w: spelling.get(id) ?? id, uk: x.ipa, us: x.ipa, senses: [{ pos: x.pos, zh: x.zh, en: x.en }], ex: [{ en: x.ex[0], zh: x.ex[1] }], col: [], fam: [], syn: [], ant: [], tip: "", cefr: "", topic: "", m: 0 };
+  };
   const adapt = (e: Entry): Entry => {
     const hit = cache.get(e.id);
     if (hit) return hit;
     const ja = data.ja[e.id] ?? [];
-    const senses = e.senses.map((s, i) => {
+    const keep = data.keep?.[e.id];
+    const kept = keep ? keep.map((i) => e.senses[i]).filter(Boolean) : e.senses;
+    const senses = kept.map((s, i) => {
       const j = ja[i];
       if (!j || gloss === "zh") return s;
-      return {
-        ...s,
-        zh: gloss === "both" ? `${j[0]} ｜ ${s.zh}` : j[0],
-        yomi: j[1] || undefined,
-      };
+      return { ...s, zh: gloss === "both" ? `${j[0]} ｜ ${s.zh}` : j[0], yomi: j[2] ? undefined : j[1] || undefined, ruby: j[2] && gloss === "both" ? [...j[2], ` ｜ ${s.zh}`] : j[2] };
     });
-    const ex = e.ex.slice(0, 1).map((x) => ({
-      en: data.ex[e.id] ?? x.en,
-      zh: gloss === "ja" ? "" : x.zh,
-    }));
+    const pictured = !noimg.has(e.id);
+    const ex = pictured ? e.ex.slice(0, 1).map((x) => ({ en: data.ex[e.id] ?? x.en, zh: gloss === "ja" ? "" : x.zh })) : [];
     const out: Entry = {
       ...e,
       w: spelling.get(e.id) ?? e.w,
@@ -239,7 +251,7 @@ export function buildEikenAtlas(open: Atlas, data: EikenData, gloss: Gloss): Atl
       col: data.col[e.id] ?? e.col,
       tip: gloss === "ja" ? "" : e.tip,
       cefr: data.cefr[byId.get(e.id)?.cefr ?? 0],
-      m: e.m & ~MEDIA.ex2,
+      m: pictured ? e.m & ~MEDIA.ex2 : e.m & ~(MEDIA.img | MEDIA.ex | MEDIA.ex2),
     };
     cache.set(e.id, out);
     return out;
@@ -255,12 +267,16 @@ export function buildEikenAtlas(open: Atlas, data: EikenData, gloss: Gloss): Atl
     words,
     byId,
     peek: (id) => {
+      if (!byId.has(id)) return undefined;
+      if (extra[id]) return adapt(rawExtra(id));
       const e = open.peek(id);
-      return e && byId.has(id) ? adapt(e) : undefined;
+      return e ? adapt(e) : undefined;
     },
     async entry(id) {
       if (!byId.has(id)) throw new Error(`没有找到词条 ${id}`);
-      return adapt(await open.entry(id));
+      return adapt(extra[id] ? rawExtra(id) : await open.entry(id));
     },
+    img: (ref, size) => (noimg.has(ref.id) || extra[ref.id] ? null : open.img(ref, size)),
+    audio: (ref, kind) => (extra[ref.id] || (noimg.has(ref.id) && kind !== "uk" && kind !== "us") ? null : open.audio(ref, kind)),
   };
 }

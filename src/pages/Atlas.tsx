@@ -10,6 +10,7 @@ import { useStore } from "../store/store";
 import { Illustration } from "../ui/Illustration";
 import { searchAtlas } from "../ui/Palette";
 import { Speak } from "../ui/Speak";
+import { Gloss } from "../ui/Gloss";
 
 type Status = "all" | "new" | "learning" | "mastered" | "saved";
 const STATUS: [Status, string][] = [
@@ -346,7 +347,9 @@ function VirtualGrid({
               <span className={`tile-lv lv-${atlas.cefr[w.cefr]}`}>
                 {atlas.cefr[w.cefr]}
               </span>
-              <span className="tile-zh">{w.zh}</span>
+              <span className="tile-zh">
+                <Gloss text={w.zh} ruby={w.rb} />
+              </span>
             </span>
           </button>,
         );
@@ -394,7 +397,9 @@ function VirtualList({
               {w.word}
             </span>
             <span className="row-ipa ipa">{w.ipa}</span>
-            <span className="row-zh">{w.zh}</span>
+            <span className="row-zh">
+              <Gloss text={w.zh} ruby={w.rb} />
+            </span>
             <span
               className={`row-dot ${card ? (card.st === 2 && card.s >= 21 ? "is-mastered" : "is-learning") : ""}`}
             />

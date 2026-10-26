@@ -17,6 +17,7 @@ import { AmbiencePicker } from "../ui/Ambience";
 import { Ring } from "../ui/Ring";
 import { Speak } from "../ui/Speak";
 import { shareSession } from "../ui/shareSession";
+import { Gloss } from "../ui/Gloss";
 
 export function Learn() {
   const atlas = useAtlas();
@@ -203,7 +204,7 @@ function Quiz({ step, session }: { step: Step & { kind: QuizKind }; session: Act
                   {sentence.after}
                 </>
               ) : (
-                entry.senses[0].zh
+                <Gloss text={entry.senses[0].zh} ruby={entry.senses[0].ruby} />
               )}
             </p>
             {sentence && pending && entry.ex[0].zh && <p className="cloze-zh">{entry.ex[0].zh}</p>}
@@ -235,7 +236,7 @@ function Quiz({ step, session }: { step: Step & { kind: QuizKind }; session: Act
               <li key={o.id}>
                 <button className={`option ${cls}`} data-option={o.id} onClick={() => submit(o.id, isAnswer)} disabled={!!pending}>
                   <kbd>{i + 1}</kbd>
-                  <span lang={step.kind === "meaning" ? "zh" : "en"}>{step.kind === "meaning" ? o.zh : o.word}</span>
+                  <span lang={step.kind === "meaning" ? "zh" : "en"}>{step.kind === "meaning" ? <Gloss text={o.zh} ruby={o.rb} /> : o.word}</span>
                   {pending && isAnswer && <Check size={20} className="option-mark" />}
                   {pending && chosen && !isAnswer && <X size={20} className="option-mark" />}
                 </button>
@@ -260,7 +261,7 @@ function SpellPrompt({ entry, refw, hints }: { entry: Entry; refw: WordRef; hint
       <Illustration src={atlas.img(entry)} word={entry.w} topic={refw.topic} eager className="spell-art" />
       <div>
         <p className="spell-zh">
-          <span className="pos">{entry.senses[0].pos}</span> {entry.senses[0].zh}
+          <span className="pos">{entry.senses[0].pos}</span> <Gloss text={entry.senses[0].zh} ruby={entry.senses[0].ruby} />
         </p>
         {sentence && (
           <p className="cloze cloze-sm" lang="en">
@@ -420,7 +421,9 @@ function Summary({ session }: { session: ActiveSession }) {
             <li key={w.id} className={session.graded[w.id] === Rating.Again ? "is-wrong" : ""}>
               <Illustration src={atlas.img(w, "thumb")} word={w.word} topic={w.topic} />
               <span lang="en">{w.word}</span>
-              <small>{w.zh}</small>
+              <small>
+                <Gloss text={w.zh} ruby={w.rb} />
+              </small>
             </li>
           ))}
         </ul>
