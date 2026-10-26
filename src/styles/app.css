@@ -1069,6 +1069,15 @@ code {
   font-weight: 600;
   line-height: 1.45;
 }
+.senses .zh .yomi {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--ink-3, currentColor);
+  opacity: 0.75;
+}
 .senses .en {
   grid-column: 2;
   font: italic 400 15px/1.45 var(--serif);

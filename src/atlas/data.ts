@@ -168,3 +168,99 @@ export async function loadPrivateAtlas(open: Atlas | null): Promise<Atlas | null
     audio: (ref, kind) => pick(ref)?.[kind] ?? null,
   };
 }
+
+/* ---------- 英検準2級 word book (a filtered, Japanese-glossed view of the open atlas) ---------- */
+
+export type Gloss = "ja" | "zh" | "both";
+
+export interface EikenData {
+  id: string;
+  name: string;
+  cefr: string[];
+  /** [id, American spelling, level index] in learning order. */
+  words: [string, string, number][];
+  /** Japanese gloss and kana reading per sense, aligned with the entry's senses. */
+  ja: Record<string, [string, string][]>;
+  /** Example sentences rewritten in American spelling, where they differ. */
+  ex: Record<string, string>;
+  col: Record<string, string[]>;
+}
+
+export async function loadEikenData(): Promise<EikenData> {
+  const res = await fetch(url("eiken-pre2.json"));
+  if (!res.ok) throw new Error(`英検词库加载失败（${res.status}）`);
+  return (await res.json()) as EikenData;
+}
+
+export function buildEikenAtlas(open: Atlas, data: EikenData, gloss: Gloss): Atlas {
+  const spelling = new Map(data.words.map(([id, us]) => [id, us]));
+  const label = (id: string, zh: string) => {
+    const ja = data.ja[id]?.[0]?.[0];
+    if (!ja || gloss === "zh") return zh;
+    const pos = (zh.match(/^[a-z]+\.(?:\s|$)/) || [""])[0];
+    return `${pos}${ja}`.trim();
+  };
+  const words: WordRef[] = [];
+  data.words.forEach(([id, us, level]) => {
+    const ref = open.byId.get(id);
+    if (ref)
+      words.push({
+        ...ref,
+        word: us,
+        zh: label(id, ref.zh),
+        cefr: level,
+        order: words.length,
+      });
+  });
+  const byId = new Map(words.map((w) => [w.id, w]));
+  const cache = new Map<string, Entry>();
+  const adapt = (e: Entry): Entry => {
+    const hit = cache.get(e.id);
+    if (hit) return hit;
+    const ja = data.ja[e.id] ?? [];
+    const senses = e.senses.map((s, i) => {
+      const j = ja[i];
+      if (!j || gloss === "zh") return s;
+      return {
+        ...s,
+        zh: gloss === "both" ? `${j[0]} ｜ ${s.zh}` : j[0],
+        yomi: j[1] || undefined,
+      };
+    });
+    const ex = e.ex.slice(0, 1).map((x) => ({
+      en: data.ex[e.id] ?? x.en,
+      zh: gloss === "ja" ? "" : x.zh,
+    }));
+    const out: Entry = {
+      ...e,
+      w: spelling.get(e.id) ?? e.w,
+      senses,
+      ex,
+      col: data.col[e.id] ?? e.col,
+      tip: gloss === "ja" ? "" : e.tip,
+      cefr: data.cefr[byId.get(e.id)?.cefr ?? 0],
+      m: e.m & ~MEDIA.ex2,
+    };
+    cache.set(e.id, out);
+    return out;
+  };
+  return {
+    ...open,
+    id: data.id,
+    name: data.name,
+    count: words.length,
+    examples: words.length,
+    illustrated: words.filter((w) => w.media & MEDIA.img).length,
+    cefr: data.cefr,
+    words,
+    byId,
+    peek: (id) => {
+      const e = open.peek(id);
+      return e && byId.has(id) ? adapt(e) : undefined;
+    },
+    async entry(id) {
+      if (!byId.has(id)) throw new Error(`没有找到词条 ${id}`);
+      return adapt(await open.entry(id));
+    },
+  };
+}

@@ -165,15 +165,35 @@ export function Me({ privateAvailable }: { privateAvailable: boolean }) {
           <Toggle label="界面音效" on={settings.sfx} set={(v) => set({ sfx: v })} />
           <Toggle label="开屏动画（每天一次）" on={settings.splash} set={(v) => set({ splash: v })} />
           <Toggle label="复习时加入拼写题" on={settings.spell} set={(v) => set({ spell: v })} />
-          {privateAvailable && (
-            <Field label="词库" hint="私人词库只在本机开发服务器中可用，不会被打包发布。">
+          <Field label="词库" hint="两个词库的学习进度各自独立。切换后从最低难度开始，可在上方调整。">
+            <div className="segmented">
+              {(
+                [
+                  ["eiken", "英検準2級"],
+                  ["open", "雅思"],
+                  ...(privateAvailable ? ([["private", "私人 8000"]] as const) : []),
+                ] as const
+              ).map(([k, l]) => (
+                <button key={k} className={settings.dataset === k ? "is-on" : ""} onClick={() => settings.dataset !== k && set({ dataset: k, startLevel: 0 })}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </Field>
+          {settings.dataset === "eiken" && (
+            <Field label="释义语言" hint="例句的中文翻译只在「中文」和「中日对照」中显示。">
               <div className="segmented">
-                <button className={settings.dataset === "open" ? "is-on" : ""} onClick={() => set({ dataset: "open" })}>
-                  开放图鉴
-                </button>
-                <button className={settings.dataset === "private" ? "is-on" : ""} onClick={() => set({ dataset: "private" })}>
-                  私人 8000
-                </button>
+                {(
+                  [
+                    ["ja", "日本語"],
+                    ["zh", "中文"],
+                    ["both", "中日对照"],
+                  ] as const
+                ).map(([k, l]) => (
+                  <button key={k} className={settings.gloss === k ? "is-on" : ""} onClick={() => set({ gloss: k })}>
+                    {l}
+                  </button>
+                ))}
               </div>
             </Field>
           )}

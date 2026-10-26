@@ -206,7 +206,7 @@ function Quiz({ step, session }: { step: Step & { kind: QuizKind }; session: Act
                 entry.senses[0].zh
               )}
             </p>
-            {sentence && pending && <p className="cloze-zh">{entry.ex[0].zh}</p>}
+            {sentence && pending && entry.ex[0].zh && <p className="cloze-zh">{entry.ex[0].zh}</p>}
           </div>
         )}
         {step.kind === "listen" && (

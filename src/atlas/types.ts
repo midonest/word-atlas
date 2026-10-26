@@ -7,6 +7,8 @@ export interface Sense {
   pos: string;
   zh: string;
   en: string;
+  /** Kana reading of a Japanese gloss, when the gloss is Japanese. */
+  yomi?: string;
 }
 
 export interface Example {

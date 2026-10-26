@@ -321,7 +321,7 @@ function Topics() {
   return (
     <section className="topics-panel">
       <div className="panel-head">
-        <h3 className="eyebrow">按雅思话题探索</h3>
+        <h3 className="eyebrow">按话题探索</h3>
         <button className="link" onClick={() => go({ page: "atlas" })}>
           打开图鉴
         </button>

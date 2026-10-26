@@ -1,7 +1,7 @@
 import { BookOpen, ChevronLeft, ChevronRight, Compass, Github, Keyboard, Moon, Search, Sun, User } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AtlasContext, useAtlas, useEntry } from "./atlas/context";
-import { loadOpenAtlas, loadPrivateAtlas } from "./atlas/data";
+import { buildEikenAtlas, loadEikenData, loadOpenAtlas, loadPrivateAtlas, type EikenData } from "./atlas/data";
 import type { Atlas } from "./atlas/types";
 import { REPO_URL } from "./config";
 import { closeWord, currentLocation, go, openWord, useLocation, type Route } from "./lib/router";
@@ -45,9 +45,17 @@ export default function App() {
   const [atlas, setAtlas] = useState<Atlas | null>(null);
   const [open, setOpen] = useState<Atlas | null>(null);
   const [priv, setPriv] = useState<Atlas | null>(null);
+  const [eikenData, setEikenData] = useState<EikenData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const dataset = useStore((s) => s.settings.dataset);
+  const gloss = useStore((s) => s.settings.gloss);
   useTheme();
+
+  useEffect(() => {
+    if (dataset === "eiken" && !eikenData) loadEikenData().then(setEikenData, (e: Error) => setError(e.message));
+  }, [dataset, eikenData]);
+
+  const eiken = useMemo(() => (open && eikenData ? buildEikenAtlas(open, eikenData, gloss) : null), [open, eikenData, gloss]);
 
   useEffect(() => {
     loadOpenAtlas().then(
@@ -60,12 +68,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const next = dataset === "private" && priv ? priv : open;
+    const next = dataset === "private" && priv ? priv : dataset === "eiken" ? eiken : open;
     if (next && next !== atlas) {
-      store.useDataset(next.id);
+      if (next.id !== atlas?.id) store.useDataset(next.id);
       setAtlas(next);
     }
-  }, [dataset, open, priv, atlas]);
+  }, [dataset, open, priv, eiken, atlas]);
 
   if (error)
     return (

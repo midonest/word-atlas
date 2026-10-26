@@ -52,7 +52,7 @@ function quizKind(ref: WordRef, p: Progress, s: Settings, salt: number): QuizKin
 /** Distractors that look plausible: same level, similar spelling or length, different meaning. */
 export function distractors(atlas: Atlas, ref: WordRef, kind: QuizKind, seed: number) {
   const target = normalize(ref.word);
-  const zhCore = ref.zh.replace(/^[a-z.]+\s*/, "").split(/[；;，,]/)[0];
+  const zhCore = ref.zh.replace(/^[a-z.]+\s*/, "").split(/[；;，,、]/)[0];
   const scored: [number, WordRef][] = [];
   const pool = atlas.words;
   const start = Math.max(0, ref.order - 400);

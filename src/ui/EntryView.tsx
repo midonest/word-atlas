@@ -105,7 +105,14 @@ export function EntryView({ entry, mode = "detail", eager = true }: { entry: Ent
           {entry.senses.map((s, i) => (
             <li key={i}>
               <span className="pos">{s.pos}</span>
-              <span className="zh">{s.zh}</span>
+              <span className="zh">
+                {s.zh}
+                {s.yomi && (
+                  <small className="yomi" lang="ja">
+                    {s.yomi}
+                  </small>
+                )}
+              </span>
               {s.en && (
                 <span className="en" lang="en">
                   {s.en}
@@ -126,7 +133,7 @@ export function EntryView({ entry, mode = "detail", eager = true }: { entry: Ent
                     <Highlight text={x.en} word={entry.w} />
                     <Speak url={exUrls[i] ?? null} text={x.en} accent={i === 1 && exUrls[1] ? "us" : accent} size="sm" className="ex-speak" />
                   </p>
-                  <p className="ex-zh">{x.zh}</p>
+                  {x.zh && <p className="ex-zh">{x.zh}</p>}
                 </li>
               ))}
             </ul>
