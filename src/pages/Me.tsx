@@ -290,8 +290,8 @@ function NameEditor() {
   };
   return (
     <div className="name-row">
-      <input className="name-input" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} maxLength={12} placeholder="e.g. Mimi" spellCheck={false} lang="en" aria-invalid={!!name && !ok} />
-      {name && !ok && <small className="warn-text">请只用英文字母</small>}
+      <input className="name-input" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} maxLength={12} placeholder="e.g. Mimi" spellCheck={false} lang="en" aria-invalid={!!trimmed && !ok} />
+      {trimmed && !ok && <small className="warn-text">请只用英文字母</small>}
     </div>
   );
 }

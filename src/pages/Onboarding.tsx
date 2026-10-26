@@ -37,7 +37,7 @@ const GLOSSES: [Settings["gloss"], string][] = [
 
 /** Asks for the learner's English name; shared by onboarding and the one-time prompt. */
 export function NameField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const bad = value.length > 0 && !isEnglishName(value);
+  const bad = value.trim().length > 0 && !isEnglishName(value.trim());
   return (
     <fieldset>
       <legend>你的英文名字</legend>
